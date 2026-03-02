@@ -1,7 +1,8 @@
 // app/predict/page.tsx
 import PredictClient from "@/components/PredictClient";
 import { createClient } from "@/lib/supabase/server";
-import { getUser } from "@/lib/supabase/auth"; 
+import { cookies } from "next/headers";
+import { verifyToken } from "@/lib/auth";
 
 interface Nominee {
   id: string;
@@ -18,12 +19,14 @@ interface Category {
 export default async function PredictPage() {
   const supabase = await createClient();
 
-  // 1️⃣ Get the currently logged-in user
-  const user = await getUser(supabase);
-  if (!user) {
+  // 1️⃣ Get the currently logged-in user from our session cookie
+  const cookieStore = await cookies();
+  const token = cookieStore.get("aw_session")?.value ?? null;
+  const session = token ? verifyToken(token) : null;
+  if (!session) {
     return <div>Please log in to submit predictions.</div>;
   }
-  const userId = user.id;
+  const userId = session.id;
 
   // 2️⃣ Get latest active event
   const { data: events } = await supabase

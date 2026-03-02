@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CategoryCard from "@/components/CategoryCard";
 import { savePredictions } from "@/app/actions/savePredictions";
+import { ensureProfile } from "@/app/actions/ensureProfile";
 
 interface Nominee {
   id: string;
@@ -31,6 +32,35 @@ export default function PredictClient({
 }: Props) {
   const [selected, setSelected] = useState<Record<string, string>>(initialSelections || {});
   const [loading, setLoading] = useState(false);
+  const [ensuringProfile, setEnsuringProfile] = useState(true);
+  const [profileEnsured, setProfileEnsured] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!userId) {
+      setEnsuringProfile(false);
+      return;
+    }
+
+    setEnsuringProfile(true);
+    ensureProfile(userId)
+      .then(() => {
+        if (!mounted) return;
+        setProfileEnsured(true);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setProfileEnsured(false);
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setEnsuringProfile(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
 
   const handleSelect = (categoryId: string, nomineeId: string) => {
     setSelected((prev) => ({
@@ -75,10 +105,14 @@ export default function PredictClient({
       <div className="flex justify-center pt-10">
         <button
           onClick={handleSubmit}
-          disabled={loading}
+          disabled={loading || ensuringProfile}
           className="px-10 py-4 rounded-full bg-gradient-to-r from-yellow-500 to-amber-400 text-black font-bold text-lg shadow-xl hover:scale-105 transition"
         >
-          {loading ? "Saving..." : Object.keys(initialSelections || {}).length > 0 ? "Save Changes" : "Submit Predictions"}
+          {loading || ensuringProfile
+            ? "Preparing..."
+            : Object.keys(initialSelections || {}).length > 0
+            ? "Save Changes"
+            : "Submit Predictions"}
         </button>
       </div>
     </div>

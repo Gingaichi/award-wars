@@ -2,11 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { LoginCard } from "@/components/auth/LoginCard";
 
 export default function LoginPage() {
-  const supabase = createClient();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -16,17 +14,23 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (error) {
-      setError(error.message);
-      return;
+      if (!res.ok) {
+        const body = await res.json();
+        setError(body?.error || "Login failed");
+        return;
+      }
+
+      router.push("/predict");
+    } catch (err) {
+      setError("Unexpected error");
     }
-
-    router.push("/predict");
   };
 
   return (

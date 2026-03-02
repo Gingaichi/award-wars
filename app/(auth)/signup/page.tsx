@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { SignUpCard } from "@/components/auth/SignUpCard";
 
 export default function SignUpPage() {
-  const supabase = createClient();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,25 +17,39 @@ export default function SignUpPage() {
   const handleSignUp = async () => {
     setLoading(true);
     setError(null);
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) {
-      setError(error.message);
+    const trimmed = username?.trim() || "";
+    if (!trimmed) {
+      setError("Please choose a username.");
       setLoading(false);
       return;
     }
 
-    const user = data.user;
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      setLoading(false);
+      return;
+    }
 
-    if (user) {
-      await supabase.from("profiles").insert({
-        id: user.id,
-        username,
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: trimmed, email, password, passwordConfirm: confirmPassword }),
       });
+
+      if (!res.ok) {
+        const body = await res.json();
+        setError(body?.error || "Signup failed");
+        setLoading(false);
+        return;
+      }
+
+      // Signed up and session cookie set
+      router.push("/predict");
+    } catch (err) {
+      setError("Unexpected error");
+      setLoading(false);
+      return;
     }
 
     setLoading(false);
@@ -50,10 +63,12 @@ export default function SignUpPage() {
         username={username}
         email={email}
         password={password}
+        confirmPassword={confirmPassword}
         loading={loading}
         onUsernameChange={setUsername}
         onEmailChange={setEmail}
         onPasswordChange={setPassword}
+        onConfirmPasswordChange={setConfirmPassword}
         onSubmit={handleSignUp}
       />
     </div>

@@ -7,10 +7,12 @@ type Props = {
   username: string;
   email: string;
   password: string;
+  confirmPassword?: string;
   loading: boolean;
   onUsernameChange: (value: string) => void;
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
+  onConfirmPasswordChange?: (value: string) => void;
   onSubmit: () => void;
 };
 
@@ -19,10 +21,12 @@ export function SignUpCard({
   username,
   email,
   password,
+  confirmPassword,
   loading,
   onUsernameChange,
   onEmailChange,
   onPasswordChange,
+  onConfirmPasswordChange,
   onSubmit,
 }: Props) {
   return (
@@ -60,6 +64,14 @@ export function SignUpCard({
           className="w-full rounded-lg bg-zinc-800 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition"
           value={password}
           onChange={(e) => onPasswordChange(e.target.value)}
+        />
+
+        <input
+          type="password"
+          placeholder="Retype password"
+          className="w-full rounded-lg bg-zinc-800 px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500 transition"
+          value={confirmPassword ?? ""}
+          onChange={(e) => onConfirmPasswordChange?.(e.target.value)}
         />
       </div>
 

@@ -2,36 +2,36 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 
 export default function Navbar() {
-  const supabase = createClient();
   const [user, setUser] = useState<any | null>(null);
 
   useEffect(() => {
     let mounted = true;
-
-    supabase.auth.getUser().then((res: any) => {
-      if (!mounted) return;
-      setUser(res?.data?.user ?? null);
-    });
-
-    const { data }: any = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      mounted = false;
+    const fetchSession = async () => {
       try {
-        data?.subscription?.unsubscribe?.();
-      } catch (_) {
-        // ignore cleanup errors
+        const res = await fetch("/api/auth/session");
+        const body = await res.json();
+        if (!mounted) return;
+        setUser(body?.user ?? null);
+      } catch (e) {
+        if (!mounted) return;
+        setUser(null);
       }
     };
-  }, [supabase]);
+
+    fetchSession();
+
+    const iv = setInterval(fetchSession, 30_000);
+    return () => {
+      mounted = false;
+      clearInterval(iv);
+    };
+  }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    await fetch("/api/auth/logout", { method: "POST" });
+    setUser(null);
   };
 
   return (
@@ -48,7 +48,7 @@ export default function Navbar() {
         <div className="flex items-center space-x-4">
           {user ? (
             <>
-              <span className="text-sm">{user.user_metadata?.username ?? user.email}</span>
+              <span className="text-sm">{user.username}</span>
               <button onClick={handleSignOut} className="bg-red-600 px-3 py-1 rounded text-sm">Sign out</button>
             </>
           ) : (
