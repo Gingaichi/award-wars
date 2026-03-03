@@ -24,3 +24,68 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.hide-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* For very small screens, show username on larger mobile */
+@media (max-width: 400px) {
+  .xs\:inline {
+    display: none;
+  }
+}
+
+/* Add this for extra small screen breakpoint */
+@layer utilities {
+  @media (min-width: 480px) {
+    .xs\:flex-row {
+      flex-direction: row;
+    }
+    .xs\:w-auto {
+      width: auto;
+    }
+    .xs\:max-w-none {
+      max-width: none;
+    }
+    .xs\:inline {
+      display: inline;
+    }
+    .xs\:self-auto {
+      align-self: auto;
+    }
+  }
+}
+
+@keyframes filmGrain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -5%); }
+  20% { transform: translate(-10%, 5%); }
+  30% { transform: translate(5%, -10%); }
+  40% { transform: translate(-5%, 15%); }
+  50% { transform: translate(-10%, 5%); }
+  60% { transform: translate(15%, 0); }
+  70% { transform: translate(0, 10%); }
+  80% { transform: translate(-15%, 0); }
+  90% { transform: translate(10%, 5%); }
+}
+
+.animate-film-grain {
+  animation: filmGrain 8s steps(10) infinite;
+}
+
+@keyframes loading {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+.animate-loading {
+  animation: loading 3s ease-in-out;
+}

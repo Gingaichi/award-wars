@@ -2,75 +2,54 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { SignUpCard } from "@/components/auth/SignUpCard";
 
 export default function SignUpPage() {
   const router = useRouter();
-
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [username, setUsername] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleSignUp = async () => {
+    setError("");
+    if (!username.trim()) return setError("Username required");
+    if (!email.trim()) return setError("Email required");
+    if (password !== confirmPassword) return setError("Passwords do not match");
+
     setLoading(true);
-    setError(null);
-    const trimmed = username?.trim() || "";
-    if (!trimmed) {
-      setError("Please choose a username.");
-      setLoading(false);
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      setLoading(false);
-      return;
-    }
-
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: trimmed, email, password, passwordConfirm: confirmPassword }),
+        body: JSON.stringify({ username, email, password, passwordConfirm: confirmPassword }),
       });
 
-      if (!res.ok) {
-        const body = await res.json();
-        setError(body?.error || "Signup failed");
-        setLoading(false);
-        return;
-      }
-
-      // Signed up and session cookie set
-      router.push("/predict");
-    } catch (err) {
+      const data = await res.json();
+        if (res.ok && data.id) {
+          // Store the logged-in profile's id
+          localStorage.setItem("userId", data.id); // ✅ THIS IS CRUCIAL
+          router.push("/leagues");
+        }
+    } catch {
       setError("Unexpected error");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setLoading(false);
-    router.push("/predict");
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-black via-zinc-950 to-black text-white px-4">
-      <SignUpCard
-        error={error}
-        username={username}
-        email={email}
-        password={password}
-        confirmPassword={confirmPassword}
-        loading={loading}
-        onUsernameChange={setUsername}
-        onEmailChange={setEmail}
-        onPasswordChange={setPassword}
-        onConfirmPasswordChange={setConfirmPassword}
-        onSubmit={handleSignUp}
-      />
+    <div className="p-8 max-w-md mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Sign Up</h1>
+      <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} className="border p-2 mb-2 w-full"/>
+      <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="border p-2 mb-2 w-full"/>
+      <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className="border p-2 mb-2 w-full"/>
+      <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="border p-2 mb-2 w-full"/>
+      <button onClick={handleSignUp} disabled={loading} className="bg-blue-600 text-white px-4 py-2">
+        {loading ? "Signing up..." : "Sign Up"}
+      </button>
+      {error && <p className="mt-2 text-red-500">{error}</p>}
     </div>
   );
 }

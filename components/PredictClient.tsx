@@ -1,9 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import CategoryCard from "@/components/CategoryCard";
-import { savePredictions } from "@/app/actions/savePredictions";
-import { ensureProfile } from "@/app/actions/ensureProfile";
+import { useRouter } from "next/navigation";
+import { BallotHeader } from "./predict/BallotHeader";
+import { CategoryCard } from "./predict/CategoryCard";
+import { BallotFooter } from "./predict/BallotFooter";
+import { SuccessModal } from "./predict/SuccessModal";
+import { LoadingState } from "./predict/LoadingState";
+import { Film, Award, TrendingUp } from "lucide-react";
 
 interface Nominee {
   id: string;
@@ -17,104 +21,114 @@ interface Category {
   nominees: Nominee[];
 }
 
-interface Props {
-  categories?: Category[];
+interface PredictClientProps {
+  categories: Category[];
   eventId: string;
   userId: string;
-  initialSelections?: Record<string, string>;
+  initialSelections: Record<string, string>;
 }
 
-export default function PredictClient({
-  categories = [],
-  eventId,
-  userId,
-  initialSelections = {},
-}: Props) {
-  const [selected, setSelected] = useState<Record<string, string>>(initialSelections || {});
-  const [loading, setLoading] = useState(false);
-  const [ensuringProfile, setEnsuringProfile] = useState(true);
-  const [profileEnsured, setProfileEnsured] = useState(false);
+export default function PredictClient({ 
+  categories, 
+  eventId, 
+  userId, 
+  initialSelections 
+}: PredictClientProps) {
+  const router = useRouter();
+  const [selections, setSelections] = useState<Record<string, string>>(initialSelections);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
-    if (!userId) {
-      setEnsuringProfile(false);
-      return;
-    }
-
-    setEnsuringProfile(true);
-    ensureProfile(userId)
-      .then(() => {
-        if (!mounted) return;
-        setProfileEnsured(true);
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setProfileEnsured(false);
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setEnsuringProfile(false);
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, [userId]);
+    const selectedCount = Object.keys(selections).length;
+    setProgress((selectedCount / categories.length) * 100);
+  }, [selections, categories.length]);
 
   const handleSelect = (categoryId: string, nomineeId: string) => {
-    setSelected((prev) => ({
+    setSelections(prev => ({
       ...prev,
-      [categoryId]: nomineeId,
+      [categoryId]: prev[categoryId] === nomineeId ? "" : nomineeId
     }));
   };
 
-  const handleSubmit = async () => {
-    setLoading(true);
-
-    const selections = Object.entries(selected).map(
-      ([categoryId, nomineeId]) => ({
-        categoryId,
-        nomineeId,
-      })
-    );
-
+  const handleSave = async () => {
+    setSaving(true);
     try {
-      await savePredictions(userId, eventId, selections);
-      alert("Predictions saved!");
-    } catch (err) {
-      alert("Error saving predictions");
-    }
+      const response = await fetch("/api/predictions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          eventId,
+          userId,
+          selections,
+        }),
+      });
 
-    setLoading(false);
+      if (response.ok) {
+        setSaveSuccess(true);
+        setShowSuccessModal(true);
+        setTimeout(() => {
+          router.push("/leagues");
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("Failed to save predictions:", error);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  return (
-    <div className="space-y-10">
-      {categories.map((category) => (
-        <CategoryCard
-          key={category.id}
-          category={category}
-          selected={selected[category.id]}
-          onSelect={(nomineeId) =>
-            handleSelect(category.id, nomineeId)
-          }
-        />
-      ))}
+  const selectedCount = Object.keys(selections).length;
+  const isComplete = selectedCount === categories.length;
 
-      <div className="flex justify-center pt-10">
-        <button
-          onClick={handleSubmit}
-          disabled={loading || ensuringProfile}
-          className="px-10 py-4 rounded-full bg-gradient-to-r from-yellow-500 to-amber-400 text-black font-bold text-lg shadow-xl hover:scale-105 transition"
-        >
-          {loading || ensuringProfile
-            ? "Preparing..."
-            : Object.keys(initialSelections || {}).length > 0
-            ? "Save Changes"
-            : "Submit Predictions"}
-        </button>
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-stone-900 via-stone-800 to-stone-900">
+      {/* Film grain overlay */}
+      <div className="fixed inset-0 opacity-5 pointer-events-none" 
+           style={{ backgroundImage: "url('data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E')" }}>
       </div>
+
+      {/* Red carpet stripe */}
+      <div className="h-2 bg-gradient-to-r from-amber-600 via-red-600 to-amber-600" />
+
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Header */}
+        <BallotHeader 
+          progress={progress}
+          selectedCount={selectedCount}
+          totalCategories={categories.length}
+        />
+
+        {/* Categories Grid */}
+        <div className="space-y-8 sm:space-y-12 mt-8 sm:mt-12">
+          {categories.map((category, index) => (
+            <CategoryCard
+              key={category.id}
+              category={category}
+              index={index}
+              selectedNomineeId={selections[category.id]}
+              onSelect={(nomineeId) => handleSelect(category.id, nomineeId)}
+            />
+          ))}
+        </div>
+
+        {/* Footer with Save Button */}
+        <BallotFooter
+          isComplete={isComplete}
+          selectedCount={selectedCount}
+          totalCategories={categories.length}
+          onSave={handleSave}
+          saving={saving}
+        />
+      </div>
+
+      {/* Success Modal */}
+      <SuccessModal 
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+      />
     </div>
   );
 }

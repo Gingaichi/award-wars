@@ -10,26 +10,52 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async () => {
     setError(null);
+
+    // ✅ Basic validation
+    if (!email.trim()) {
+      setError("Email is required");
+      return;
+    }
+
+    if (!password) {
+      setError("Password is required");
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
       });
 
+      const data = await res.json();
+
       if (!res.ok) {
-        const body = await res.json();
-        setError(body?.error || "Login failed");
+        setError(data?.error || "Login failed");
+        setLoading(false);
         return;
       }
 
+      // ✅ VERY IMPORTANT — store logged in user id
+      localStorage.setItem("userId", data.id);
+
+      // Redirect after successful login
       router.push("/predict");
     } catch (err) {
+      console.error(err);
       setError("Unexpected error");
+    } finally {
+      setLoading(false);
     }
   };
 

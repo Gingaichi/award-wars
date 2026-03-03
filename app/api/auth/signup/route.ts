@@ -8,53 +8,57 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { username, email, password, passwordConfirm } = body;
 
-    if (!username || !email || !password || !passwordConfirm) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    // ✅ Basic validation
+    if (!username?.trim() || !email?.trim() || !password || !passwordConfirm) {
+      return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
+
     if (password !== passwordConfirm) {
       return NextResponse.json({ error: "Passwords do not match" }, { status: 400 });
     }
 
     const supabase = await createClient();
 
-    // Check username and email availability
-    const { data: userByUsername } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("username", username)
-      .limit(1);
-    if (userByUsername && userByUsername.length > 0) {
-      return NextResponse.json({ error: "Username taken" }, { status: 409 });
-    }
+    const trimmedUsername = username.trim();
+    const trimmedEmail = email.trim().toLowerCase();
 
-    const { data: userByEmail } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .limit(1);
-    if (userByEmail && userByEmail.length > 0) {
-      return NextResponse.json({ error: "Email already in use" }, { status: 409 });
-    }
-
-    // Create profile row
+    // ✅ Generate ID and hash password
     const id = (globalThis as any).crypto?.randomUUID?.() || Math.random().toString(36).slice(2, 10);
     const password_hash = await bcrypt.hash(password, 10);
 
+    // ✅ Try inserting directly — rely on DB UNIQUE constraints
     const { error } = await supabase.from("profiles").insert({
       id,
-      username,
-      email,
+      username: trimmedUsername,
+      email: trimmedEmail,
       password_hash,
     });
 
     if (error) {
       console.error("Error inserting profile:", error);
-      return NextResponse.json({ error: "DB error" }, { status: 500 });
+
+      // Handle duplicate email or username
+      if (error.code === "23505") {
+        if (error.message.includes("profiles_email_key")) {
+          return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+        }
+        if (error.message.includes("profiles_username_unique")) {
+          return NextResponse.json({ error: "Username taken" }, { status: 409 });
+        }
+      }
+
+      // Handle null constraint errors
+      if (error.code === "23502") {
+        return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      }
+
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
-    const token = signToken({ id, username });
+    // ✅ Sign token
+    const token = signToken({ id, username: trimmedUsername });
 
-    const res = NextResponse.json({ id, username });
+    const res = NextResponse.json({ id, username: trimmedUsername });
     res.cookies.set("aw_session", token, {
       httpOnly: true,
       path: "/",
@@ -64,7 +68,7 @@ export async function POST(req: Request) {
 
     return res;
   } catch (err) {
-    console.error(err);
+    console.error("Unexpected error:", err);
     return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
   }
 }
