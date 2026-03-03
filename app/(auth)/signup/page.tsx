@@ -55,7 +55,7 @@ export default function SignUpPage() {
       localStorage.setItem("username", username);
 
       // Redirect to leagues
-      router.push("/leagues");
+      router.push("/predict");
       
     } catch (error: any) {
       console.error("Signup error:", error);
