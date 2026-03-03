@@ -1,20 +1,27 @@
+// app/api/leagues/create/route.ts
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { name, userId } = await req.json();
+    const { name, userId } = await request.json();
 
-    if (!name?.trim() || !userId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!name || !userId) {
+      return NextResponse.json(
+        { error: "Name and user ID required" },
+        { status: 400 }
+      );
     }
 
-    const supabase = await createClient();
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+      );
 
     // Generate a unique invite code
     const generateCode = () => {
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      let code = '';
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let code = "";
       for (let i = 0; i < 6; i++) {
         code += chars.charAt(Math.floor(Math.random() * chars.length));
       }
@@ -23,6 +30,8 @@ export async function POST(req: Request) {
 
     let code = generateCode();
     let existingLeague;
+    let attempts = 0;
+    const maxAttempts = 10;
 
     // Ensure code is unique
     do {
@@ -31,55 +40,76 @@ export async function POST(req: Request) {
         .select("code")
         .eq("code", code)
         .maybeSingle();
+      
       existingLeague = data;
-      if (existingLeague) code = generateCode();
+      if (existingLeague && attempts < maxAttempts) {
+        code = generateCode();
+        attempts++;
+      } else if (attempts >= maxAttempts) {
+        return NextResponse.json(
+          { error: "Failed to generate unique code" },
+          { status: 500 }
+        );
+      }
     } while (existingLeague);
 
-    // Create the league with owner_id
-    const { data: league, error: leagueError } = await supabase
+    // Create the league
+    const { data: league, error: createError } = await supabase
       .from("leagues")
       .insert({
-        name: name.trim(),
+        name,
         code,
         owner_id: userId,
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();
 
-    if (leagueError) {
-      console.error("Error creating league:", leagueError);
-      return NextResponse.json({ error: "Failed to create league" }, { status: 500 });
+    if (createError) {
+      console.error("Error creating league:", createError);
+      return NextResponse.json(
+        { error: "Failed to create league: " + createError.message },
+        { status: 500 }
+      );
     }
 
-    // Add owner as a member of the league (no score column)
+    // Add creator as a member with role 'owner'
     const { error: memberError } = await supabase
       .from("league_members")
       .insert({
         league_id: league.id,
         user_id: userId,
-        role: 'owner', // or whatever default role you use
-        joined_at: new Date().toISOString(),
+        role: 'owner',
+        joined_at: new Date().toISOString()
       });
 
     if (memberError) {
-      console.error("Error adding owner to league:", memberError);
-      // Optionally delete the league if adding member fails
+      console.error("Error adding creator to league:", memberError);
+      
+      // Rollback league creation
       await supabase.from("leagues").delete().eq("id", league.id);
-      return NextResponse.json({ error: "Failed to setup league" }, { status: 500 });
+      
+      return NextResponse.json(
+        { error: "Failed to add you to the league: " + memberError.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
+      success: true,
       league: {
         id: league.id,
         name: league.name,
-        code: league.code,
-        member_count: 1,
-        is_owner: true
+        code: league.code
       }
     });
-  } catch (err) {
-    console.error("Unexpected error:", err);
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
+
+  } catch (error) {
+    console.error("Error in leagues/create:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

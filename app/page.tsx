@@ -1,6 +1,8 @@
+// app/page.tsx
 "use client";
 
 import Link from "next/link";
+import { PrizesSection } from "@/components/home/PrizesSection";
 
 export default function Home() {
   return (
@@ -54,6 +56,9 @@ export default function Home() {
           Lights. Camera. Prediction.
         </div>
       </main>
+
+      {/* Prizes Section */}
+      <PrizesSection />
     </div>
   );
 }

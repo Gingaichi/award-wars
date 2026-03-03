@@ -57,7 +57,7 @@ export default function LeagueDetailsPage() {
   if (!league) return <div className="text-white text-center mt-20">League not found</div>;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900">
       <DetailsHeader
         leagueName={league.name}
         creatorName={league.owner_name}

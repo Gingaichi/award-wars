@@ -1,18 +1,9 @@
-import { Award, Clapperboard } from "lucide-react";
+// components/predict/CategoryCard.tsx
+import { Award, Clapperboard, Star } from "lucide-react";
 import { NomineeCard } from "./NomineeCard";
 import { GlassCard } from "../ui/GlassCard";
+import { Category, Nominee } from "@/types";
 
-interface Nominee {
-  id: string;
-  name: string;
-  winner?: boolean;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  nominees: Nominee[];
-}
 
 interface CategoryCardProps {
   category: Category;
@@ -46,22 +37,25 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
             </div>
             
             <div className="flex-1">
-              <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-                <Award className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
-                {category.name}
-                <Clapperboard className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500/50" />
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                  <Award className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
+                  {category.name}
+              
+                </h2>
+                
+                {/* Points badge - NOW USING category.points */}
+                <div className="flex items-center gap-1 border-amber-500/30">
+                  <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  <span className="text-sm font-bold text-amber-400">
+                    {category.points} {category.points === 1 ? 'point' : 'points'}
+                  </span>
+                </div>
+              </div>
               <p className="text-xs sm:text-sm text-amber-300/60 mt-1">
                 SELECT YOUR PREDICTION
               </p>
             </div>
-
-            {/* Selection indicator */}
-            {selectedNomineeId && (
-              <div className="px-2 sm:px-3 py-1 bg-green-600/20 border border-green-500/30 rounded-full">
-                <span className="text-xs sm:text-sm text-green-400 font-medium">✓ SELECTED</span>
-              </div>
-            )}
           </div>
         </div>
       </div>

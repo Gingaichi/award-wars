@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { LoginCard } from "@/components/auth/LoginCard";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
+  const supabase = createClient();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,7 +17,6 @@ export default function LoginPage() {
   const handleLogin = async () => {
     setError(null);
 
-    // ✅ Basic validation
     if (!email.trim()) {
       setError("Email is required");
       return;
@@ -29,31 +30,33 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-        }),
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data?.error || "Login failed");
-        setLoading(false);
-        return;
+      if (signInError) {
+        throw new Error(signInError.message);
       }
 
-      // ✅ VERY IMPORTANT — store logged in user id
-      localStorage.setItem("userId", data.id);
+      if (!data.user) {
+        throw new Error("Login failed - no user returned");
+      }
 
-      // Redirect after successful login
+      // Store user info
+      localStorage.setItem("userId", data.user.id);
+      
+      // Get username from user metadata
+      const username = data.user.user_metadata?.username;
+      if (username) {
+        localStorage.setItem("username", username);
+      }
+
       router.push("/predict");
-    } catch (err) {
-      console.error(err);
-      setError("Unexpected error");
+      
+    } catch (err: any) {
+      console.error("Login error:", err);
+      setError(err.message || "Invalid email or password");
     } finally {
       setLoading(false);
     }

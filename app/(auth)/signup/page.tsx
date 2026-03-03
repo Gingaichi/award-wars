@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { SignUpCard } from "@/components/auth/SignUpCard";
+import { createClient } from "@/lib/supabase/client";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -11,6 +13,8 @@ export default function SignUpPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  const supabase = createClient();
 
   const handleSignUp = async () => {
     setError("");
@@ -20,36 +24,67 @@ export default function SignUpPage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/signup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password, passwordConfirm: confirmPassword }),
+      // Sign up with Supabase Auth - the trigger will handle profile creation
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username, // This gets passed to the trigger via raw_user_meta_data
+          },
+        },
       });
 
-      const data = await res.json();
-        if (res.ok && data.id) {
-          // Store the logged-in profile's id
-          localStorage.setItem("userId", data.id); // ✅ THIS IS CRUCIAL
-          router.push("/leagues");
-        }
-    } catch {
-      setError("Unexpected error");
+      if (authError) {
+        throw new Error(authError.message);
+      }
+
+      if (!authData.user) {
+        throw new Error("Sign up failed - no user returned");
+      }
+
+      // Check if email confirmation is required
+      if (authData.user && !authData.session) {
+        setError("Please check your email to confirm your account");
+        setLoading(false);
+        return;
+      }
+
+      // Store user info (optional - you can also get this from session)
+      localStorage.setItem("userId", authData.user.id);
+      localStorage.setItem("username", username);
+
+      // Redirect to leagues
+      router.push("/leagues");
+      
+    } catch (error: any) {
+      console.error("Signup error:", error);
+      
+      if (error.message.includes("User already registered")) {
+        setError("An account with this email already exists");
+      } else {
+        setError(error.message || "Unexpected error during sign up");
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="p-8 max-w-md mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Sign Up</h1>
-      <input placeholder="Username" value={username} onChange={e => setUsername(e.target.value)} className="border p-2 mb-2 w-full"/>
-      <input placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} className="border p-2 mb-2 w-full"/>
-      <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} className="border p-2 mb-2 w-full"/>
-      <input type="password" placeholder="Confirm Password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="border p-2 mb-2 w-full"/>
-      <button onClick={handleSignUp} disabled={loading} className="bg-blue-600 text-white px-4 py-2">
-        {loading ? "Signing up..." : "Sign Up"}
-      </button>
-      {error && <p className="mt-2 text-red-500">{error}</p>}
+    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+      <SignUpCard
+        error={error}
+        username={username}
+        email={email}
+        password={password}
+        confirmPassword={confirmPassword}
+        loading={loading}
+        onUsernameChange={setUsername}
+        onEmailChange={setEmail}
+        onPasswordChange={setPassword}
+        onConfirmPasswordChange={setConfirmPassword}
+        onSubmit={handleSignUp}
+      />
     </div>
   );
 }

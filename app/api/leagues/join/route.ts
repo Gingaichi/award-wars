@@ -1,25 +1,32 @@
+// app/api/leagues/join/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { code, userId } = await req.json();
+    const { code, userId } = await request.json();
 
-    if (!code?.trim() || !userId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!code || !userId) {
+      return NextResponse.json(
+        { error: "Code and user ID required" },
+        { status: 400 }
+      );
     }
 
     const supabase = await createClient();
 
-    // Find the league by code
+    // Find league by code
     const { data: league, error: leagueError } = await supabase
       .from("leagues")
-      .select("id, name, code, owner_id")
-      .eq("code", code.trim().toUpperCase())
-      .single();
+      .select("id, name")
+      .eq("code", code.toUpperCase())
+      .maybeSingle();
 
     if (leagueError || !league) {
-      return NextResponse.json({ error: "Invalid invite code" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Invalid league code" },
+        { status: 404 }
+      );
     }
 
     // Check if user is already a member
@@ -31,34 +38,43 @@ export async function POST(req: Request) {
       .maybeSingle();
 
     if (existingMember) {
-      return NextResponse.json({ error: "Already a member of this league" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Already a member of this league" },
+        { status: 400 }
+      );
     }
 
-    // Add user to league (no score column)
+    // Add user to league as regular member (role = 'member')
     const { error: joinError } = await supabase
       .from("league_members")
       .insert({
         league_id: league.id,
         user_id: userId,
-        role: 'member', // or whatever default role you use
-        joined_at: new Date().toISOString(),
+        role: 'member',
+        joined_at: new Date().toISOString()
       });
 
     if (joinError) {
       console.error("Error joining league:", joinError);
-      return NextResponse.json({ error: "Failed to join league" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to join league: " + joinError.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
       league: {
         id: league.id,
-        name: league.name,
-        code: league.code
+        name: league.name
       }
     });
-  } catch (err) {
-    console.error("Unexpected error:", err);
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
+
+  } catch (error) {
+    console.error("Error in leagues/join:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

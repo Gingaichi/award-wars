@@ -1,39 +1,51 @@
+// components/Navbar.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 export default function Navbar() {
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
 
   useEffect(() => {
-    let mounted = true;
-    const fetchSession = async () => {
-      try {
-        const res = await fetch("/api/auth/session");
-        const body = await res.json();
-        if (!mounted) return;
-        setUser(body?.user ?? null);
-      } catch (e) {
-        if (!mounted) return;
-        setUser(null);
+    // Get initial session
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      
+      // Get username from user metadata or fetch from profiles
+      if (session?.user) {
+        const username = session.user.user_metadata?.username;
+        setUsername(username || null);
       }
     };
+    
+    getSession();
 
-    fetchSession();
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        const username = session.user.user_metadata?.username;
+        setUsername(username || null);
+      } else {
+        setUsername(null);
+      }
+    });
 
-    const iv = setInterval(fetchSession, 30_000);
-    return () => {
-      mounted = false;
-      clearInterval(iv);
-    };
-  }, []);
+    return () => subscription.unsubscribe();
+  }, [supabase]);
 
   const handleSignOut = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setUser(null);
+    await supabase.auth.signOut();
+    router.push('/');
   };
 
   const isActive = (href: string) => {
@@ -101,7 +113,7 @@ export default function Navbar() {
             {user ? (
               <>
                 <span className="text-xs sm:text-sm text-gray-300 hidden xs:inline">
-                  {user.username}
+                  {username || user.email?.split('@')[0]}
                 </span>
                 <button 
                   onClick={handleSignOut} 

@@ -7,6 +7,7 @@ interface BallotFooterProps {
   totalCategories: number;
   onSave: () => void;
   saving: boolean;
+  hasExistingPredictions: boolean;
 }
 
 export const BallotFooter: React.FC<BallotFooterProps> = ({
@@ -14,8 +15,16 @@ export const BallotFooter: React.FC<BallotFooterProps> = ({
   selectedCount,
   totalCategories,
   onSave,
-  saving
+  saving,
+  hasExistingPredictions
 }) => {
+  // Determine button text based on state
+  const getButtonText = () => {
+    if (saving) return "SUBMITTING...";
+    if (hasExistingPredictions) return "CONFIRM EDITS";
+    return "CAST YOUR VOTE";
+  };
+
   return (
     <div className="mt-8 sm:mt-12 mb-6 sm:mb-8">
       {/* Film strip decoration */}
@@ -36,7 +45,7 @@ export const BallotFooter: React.FC<BallotFooterProps> = ({
 
       {/* Submit section */}
       <div className="max-w-3xl mx-auto">
-        <div className="bg-gradient-to-r from-stone-900/90 to-stone-800/90 backdrop-blur-sm rounded-lg border border-amber-900/30 p-4 sm:p-6">
+        <div className="bg-linear-to-r from-stone-900/90 to-stone-800/90 backdrop-blur-sm rounded-lg border border-amber-900/30 p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
             {/* Stats */}
             <div className="flex items-center gap-4 sm:gap-6">
@@ -65,12 +74,12 @@ export const BallotFooter: React.FC<BallotFooterProps> = ({
                 variant="primary"
                 className={`w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-bold transition-all ${
                   isComplete 
-                    ? "bg-gradient-to-r from-amber-600 to-red-600 hover:from-amber-700 hover:to-red-700" 
+                    ? "bg-linear-to-r from-amber-600 to-red-600 hover:from-amber-700 hover:to-red-700" 
                     : "bg-stone-700 cursor-not-allowed"
                 }`}
                 icon={<Award className="w-4 h-4 sm:w-5 sm:h-5" />}
               >
-                {saving ? "SUBMITTING..." : "CAST YOUR VOTE"}
+                {getButtonText()}
               </Button>
             </div>
           </div>

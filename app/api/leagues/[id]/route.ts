@@ -1,17 +1,21 @@
+// app/api/leagues/[id]/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }  // Change type to Promise
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { searchParams } = new URL(req.url);
+    const { id: leagueId } = await params; // ✅ Await the params Promise
+    const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
-    const { id: leagueId } = await params;  // Await params
 
-    if (!userId || !leagueId) {
-      return NextResponse.json({ error: "Missing parameters" }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json(
+        { error: "User ID required" },
+        { status: 400 }
+      );
     }
 
     const supabase = await createClient();
@@ -23,25 +27,27 @@ export async function GET(
         id,
         name,
         code,
-        created_at,
         owner_id,
-        owner:profiles!leagues_owner_id_fkey(username)
+        created_at
       `)
       .eq("id", leagueId)
       .single();
 
     if (leagueError || !league) {
-      return NextResponse.json({ error: "League not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "League not found" },
+        { status: 404 }
+      );
     }
 
-    // Get all members
+    // Get all members of the league with their profiles and scores
     const { data: members, error: membersError } = await supabase
       .from("league_members")
       .select(`
         user_id,
         role,
         joined_at,
-        profiles:user_id (
+        profiles!inner (
           username
         )
       `)
@@ -49,29 +55,56 @@ export async function GET(
 
     if (membersError) {
       console.error("Error fetching members:", membersError);
-      return NextResponse.json({ error: "Database error" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Failed to fetch members" },
+        { status: 500 }
+      );
     }
 
-    // Get scores from leaderboard for each member
+    // Get owner name
+    const { data: owner } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", league.owner_id)
+      .single();
+
+    // Get current event for points calculation
+    const { data: events } = await supabase
+      .from("events")
+      .select("id")
+      .order("year", { ascending: false })
+      .limit(1);
+
+    const eventId = events?.[0]?.id;
+
+    // Get points for each member from leaderboard
     const membersWithScores = await Promise.all(
-      members.map(async (member) => {
-        const { data: leaderboardData } = await supabase
-          .from("leaderboard")
-          .select("total_points")
-          .eq("profile_id", member.user_id)
-          .maybeSingle();
+      members.map(async (member: any) => {
+        let score = 0;
+        
+        if (eventId) {
+          const { data: leaderboard } = await supabase
+            .from("leaderboard")
+            .select("total_points")
+            .eq("user_id", member.user_id)
+            .eq("event_id", eventId)
+            .maybeSingle();
+          
+          score = leaderboard?.total_points || 0;
+        }
 
         return {
           id: member.user_id,
-          username: (member.profiles as any).username,
-          score: leaderboardData?.total_points || 0,
+          username: member.profiles.username,
+          score,
           role: member.role,
-          is_owner: member.user_id === league.owner_id
+          is_owner: member.user_id === league.owner_id,
+          joined_at: member.joined_at
         };
       })
     );
 
-    // Sort by score descending and add ranks
+    // Sort by score (descending) and assign ranks
     const sortedMembers = membersWithScores
       .sort((a, b) => b.score - a.score)
       .map((member, index) => ({
@@ -84,13 +117,16 @@ export async function GET(
         id: league.id,
         name: league.name,
         code: league.code,
-        owner_name: (league.owner as any).username,
-        member_count: sortedMembers.length,
+        owner_name: owner?.username || "Unknown",
+        member_count: members.length,
         members: sortedMembers
       }
     });
-  } catch (err) {
-    console.error("Unexpected error:", err);
-    return NextResponse.json({ error: "Unexpected error" }, { status: 500 });
+  } catch (error) {
+    console.error("Error in leagues/[id]:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

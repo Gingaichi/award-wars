@@ -14,6 +14,7 @@ type Nominee = {
 type Category = {
   id: string;
   name: string;
+  points: number;
   nominees: Nominee[];
 };
 
@@ -38,21 +39,27 @@ export function Ballot({ eventName, eventYear, categories }: Props) {
     // Later: send to Supabase
   };
 
+  // Calculate progress for BallotHeader
+  const selectedCount = Object.keys(predictions).length;
+  const progress = (selectedCount / categories.length) * 100;
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black text-zinc-100">
       <div className="relative mx-auto max-w-4xl px-6 py-16">
         <BallotHeader
-          title={eventName}
-          subtitle={`${eventYear} Official Prediction Ballot`}
+          progress={progress}
+          selectedCount={selectedCount}
+          totalCategories={categories.length}
         />
 
         <div className="mt-12 space-y-10">
-          {categories.map((category) => (
+          {categories.map((category, index) => (  // ✅ Add index here
             <CategoryCard
               key={category.id}
               category={category}
-              selected={predictions[category.id]}
-              onSelect={handleSelect}
+              index={index}  // ✅ Pass the index prop
+              selectedNomineeId={predictions[category.id]}
+              onSelect={(nomineeId) => handleSelect(category.id, nomineeId)}
             />
           ))}
         </div>
