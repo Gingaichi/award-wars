@@ -1,41 +1,40 @@
 // components/home/PrizesSection.tsx
-import Image from "next/image";
-import { Sparkles, Trophy, Crown, Medal, Star } from "lucide-react";
+import { Sparkles, Trophy, Crown, Medal, Gift, Heart } from "lucide-react";
 
 export function PrizesSection() {
   const prizes = [
     {
       place: "1st",
       prize: "Letterboxd Patron + $25 Criterion Gift Card",
-      image: "/fourth.png",
       icon: Crown,
-      bgGradient: "from-yellow-500/30 via-amber-500/20 to-yellow-500/30",
-      borderColor: "border-yellow-500/40",
+      bgGradient: "from-yellow-500/20 via-amber-500/10 to-yellow-500/5",
+      borderColor: "border-yellow-500/30",
       textColor: "text-yellow-400",
       badgeColor: "bg-yellow-500",
-      badgeText: "🏆 CHAMPION"
+      badgeText: "🏆 CHAMPION",
+      requirements: true
     },
     {
       place: "2nd",
       prize: "$25 Criterion Gift Card",
-      image: "/fifth.png",
-      icon: Medal,
-      bgGradient: "from-gray-400/30 via-gray-400/20 to-gray-400/30",
-      borderColor: "border-gray-400/40",
+      icon: Gift,
+      bgGradient: "from-gray-400/20 via-gray-400/10 to-gray-400/5",
+      borderColor: "border-gray-400/30",
       textColor: "text-gray-300",
       badgeColor: "bg-gray-400",
-      badgeText: "🥈 RUNNER UP"
+      badgeText: "🥈 RUNNER UP",
+      requirements: false
     },
     {
       place: "3rd",
-      prize: "🤗 A Warm Hug",
-      image: null,
-      icon: Star,
-      bgGradient: "from-amber-700/30 via-amber-700/20 to-amber-700/30",
-      borderColor: "border-amber-700/40",
+      prize: "A Warm Hug",
+      icon: Heart,
+      bgGradient: "from-amber-700/20 via-amber-700/10 to-amber-700/5",
+      borderColor: "border-amber-700/30",
       textColor: "text-amber-500",
       badgeColor: "bg-amber-600",
-      badgeText: "🥉 THIRD PLACE"
+      badgeText: "🥉 THIRD PLACE",
+      requirements: false
     }
   ];
 
@@ -67,7 +66,7 @@ export function PrizesSection() {
 
           <div className="flex items-center justify-center gap-2 text-zinc-400">
             <Trophy className="w-5 h-5 text-yellow-500/70" />
-            <p className="text-lg">Top 3 on the battleboard take home these prizes</p>
+            <p className="text-lg">Top 3 forecasters take home these prizes</p>
             <Trophy className="w-5 h-5 text-yellow-500/70" />
           </div>
         </div>
@@ -89,50 +88,27 @@ export function PrizesSection() {
                     <span className="text-xs font-bold text-black">{prize.badgeText}</span>
                   </div>
 
-                  {/* Icon */}
-                  <div className="flex justify-center mt-6 mb-4">
-                    <div className={`p-3 rounded-full bg-black/50 border ${prize.borderColor}`}>
-                      <Icon className={`w-6 h-6 ${prize.textColor}`} />
+                  {/* Large Icon */}
+                  <div className="flex justify-center mt-8 mb-6">
+                    <div className={`p-5 rounded-full bg-black/50 border ${prize.borderColor}`}>
+                      <Icon className={`w-10 h-10 ${prize.textColor}`} />
                     </div>
                   </div>
 
-                  {/* Image container - only show if image exists */}
-                  {prize.image && (
-                    <div className="relative w-32 h-32 mx-auto mb-4">
-                      <div className={`absolute inset-0 bg-gradient-to-r ${prize.bgGradient} rounded-full blur-xl`} />
-                      <div className="relative w-full h-full">
-                        <Image
-                          src={prize.image}
-                          alt={`${prize.place} place prize`}
-                          fill
-                          className="object-contain drop-shadow-2xl"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* For third place with no image, show hug emoji */}
-                  {!prize.image && (
-                    <div className="w-32 h-32 mx-auto mb-4 flex items-center justify-center">
-                      <div className={`absolute inset-0 bg-gradient-to-r ${prize.bgGradient} rounded-full blur-xl`} />
-                      <span className="relative text-7xl">🤗</span>
-                    </div>
-                  )}
-
                   {/* Prize description */}
-                  <h3 className={`text-lg font-bold text-center mb-4 ${prize.textColor} flex-1 flex items-center justify-center`}>
+                  <h3 className={`text-xl font-bold text-center mb-4 ${prize.textColor}`}>
                     {prize.prize}
                   </h3>
 
                   {/* Requirements - only for 1st place */}
-                  {index === 0 && (
-                    <div className="mt-2 pt-3 border-t border-white/10">
-                      <p className="text-xs text-zinc-500 text-center mb-2">Requirements to win:</p>
-                      <div className="space-y-1">
-                        <p className="text-xs text-zinc-400 text-center">
+                  {prize.requirements && (
+                    <div className="mt-2 pt-4 border-t border-white/10">
+                      <p className="text-xs text-zinc-500 text-center mb-3">Requirements to win:</p>
+                      <div className="space-y-2">
+                        <p className="text-sm text-zinc-400 text-center">
                           Follow @kxreeda on X
                         </p>
-                        <p className="text-xs text-zinc-400 text-center">
+                        <p className="text-sm text-zinc-400 text-center">
                           Follow @stelikira on X
                         </p>
                       </div>
