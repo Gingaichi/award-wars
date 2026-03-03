@@ -1,8 +1,44 @@
 // components/home/PrizesSection.tsx
 import Image from "next/image";
-import { Sparkles, Trophy, Crown } from "lucide-react";
+import { Sparkles, Trophy, Crown, Medal, Star } from "lucide-react";
 
 export function PrizesSection() {
+  const prizes = [
+    {
+      place: "1st",
+      prize: "Letterboxd Patron + $25 Criterion Gift Card",
+      image: "/fourth.png",
+      icon: Crown,
+      bgGradient: "from-yellow-500/30 via-amber-500/20 to-yellow-500/30",
+      borderColor: "border-yellow-500/40",
+      textColor: "text-yellow-400",
+      badgeColor: "bg-yellow-500",
+      badgeText: "🏆 CHAMPION"
+    },
+    {
+      place: "2nd",
+      prize: "$25 Criterion Gift Card",
+      image: "/fifth.png",
+      icon: Medal,
+      bgGradient: "from-gray-400/30 via-gray-400/20 to-gray-400/30",
+      borderColor: "border-gray-400/40",
+      textColor: "text-gray-300",
+      badgeColor: "bg-gray-400",
+      badgeText: "🥈 RUNNER UP"
+    },
+    {
+      place: "3rd",
+      prize: "🤗 A Warm Hug",
+      image: null,
+      icon: Star,
+      bgGradient: "from-amber-700/30 via-amber-700/20 to-amber-700/30",
+      borderColor: "border-amber-700/40",
+      textColor: "text-amber-500",
+      badgeColor: "bg-amber-600",
+      badgeText: "🥉 THIRD PLACE"
+    }
+  ];
+
   return (
     <section className="relative py-24 px-6 overflow-hidden">
       {/* Background decoration */}
@@ -11,19 +47,19 @@ export function PrizesSection() {
         <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent" />
       </div>
 
-      <div className="relative max-w-4xl mx-auto">
+      <div className="relative max-w-6xl mx-auto">
         {/* Section header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full border border-yellow-700/40 bg-yellow-900/20 mb-6">
             <Sparkles className="w-4 h-4 text-yellow-400" />
             <span className="text-xs font-semibold uppercase tracking-wider text-yellow-400">
-              THE GRAND PRIZE
+              PRIZES & GLORY
             </span>
             <Sparkles className="w-4 h-4 text-yellow-400" />
           </div>
 
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            What will the champion{' '}
+            What will the top predictors{' '}
             <span className="bg-gradient-to-r from-yellow-400 to-amber-400 bg-clip-text text-transparent">
               win?
             </span>
@@ -31,71 +67,91 @@ export function PrizesSection() {
 
           <div className="flex items-center justify-center gap-2 text-zinc-400">
             <Trophy className="w-5 h-5 text-yellow-500/70" />
-            <p className="text-lg">Number 1 on the BattleBoard takes home this prize</p>
+            <p className="text-lg">Top 3 on the battleboard take home these prizes</p>
             <Trophy className="w-5 h-5 text-yellow-500/70" />
           </div>
         </div>
 
-        {/* Single Prize Card - Centered */}
-        <div className="flex justify-center">
-          <div className="relative group w-full max-w-md">
-            {/* Glow effect */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-500/30 via-amber-500/20 to-yellow-500/30 rounded-3xl blur-xl opacity-75 group-hover:opacity-100 transition duration-300" />
+        {/* Prize cards grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch">
+          {prizes.map((prize, index) => {
+            const Icon = prize.icon;
             
-            <div className="relative bg-gradient-to-b from-black to-zinc-900 rounded-2xl border border-yellow-500/30 p-8 backdrop-blur-sm transform transition-all duration-300 hover:scale-105 hover:-translate-y-2">
-              
-              {/* Crown icon */}
-              <div className="absolute -top-5 left-1/2 -translate-x-1/2">
-                <div className="bg-yellow-500 p-3 rounded-full shadow-lg shadow-yellow-500/30">
-                  <Crown className="w-6 h-6 text-black" />
+            return (
+              <div key={index} className="relative group">
+                {/* Glow effect */}
+                <div className={`absolute -inset-0.5 bg-gradient-to-r ${prize.bgGradient} rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition duration-300`} />
+                
+                <div className={`relative bg-gradient-to-b from-black to-zinc-900 rounded-xl border ${prize.borderColor} p-6 backdrop-blur-sm transform transition-all duration-300 hover:scale-105 hover:-translate-y-2 h-full flex flex-col`}>
+                  
+                  {/* Place badge */}
+                  <div className={`absolute -top-3 left-1/2 -translate-x-1/2 ${prize.badgeColor} px-4 py-1 rounded-full shadow-lg whitespace-nowrap`}>
+                    <span className="text-xs font-bold text-black">{prize.badgeText}</span>
+                  </div>
+
+                  {/* Icon */}
+                  <div className="flex justify-center mt-6 mb-4">
+                    <div className={`p-3 rounded-full bg-black/50 border ${prize.borderColor}`}>
+                      <Icon className={`w-6 h-6 ${prize.textColor}`} />
+                    </div>
+                  </div>
+
+                  {/* Image container - only show if image exists */}
+                  {prize.image && (
+                    <div className="relative w-32 h-32 mx-auto mb-4">
+                      <div className={`absolute inset-0 bg-gradient-to-r ${prize.bgGradient} rounded-full blur-xl`} />
+                      <div className="relative w-full h-full">
+                        <Image
+                          src={prize.image}
+                          alt={`${prize.place} place prize`}
+                          fill
+                          className="object-contain drop-shadow-2xl"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* For third place with no image, show hug emoji */}
+                  {!prize.image && (
+                    <div className="w-32 h-32 mx-auto mb-4 flex items-center justify-center">
+                      <div className={`absolute inset-0 bg-gradient-to-r ${prize.bgGradient} rounded-full blur-xl`} />
+                      <span className="relative text-7xl">🤗</span>
+                    </div>
+                  )}
+
+                  {/* Prize description */}
+                  <h3 className={`text-lg font-bold text-center mb-4 ${prize.textColor} flex-1 flex items-center justify-center`}>
+                    {prize.prize}
+                  </h3>
+
+                  {/* Requirements - only for 1st place */}
+                  {index === 0 && (
+                    <div className="mt-2 pt-3 border-t border-white/10">
+                      <p className="text-xs text-zinc-500 text-center mb-2">Requirements to win:</p>
+                      <div className="space-y-1">
+                        <p className="text-xs text-zinc-400 text-center">
+                          Follow @kxreeda on X
+                        </p>
+                        <p className="text-xs text-zinc-400 text-center">
+                          Follow @stelikira on X
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Shine effect on hover */}
+                  <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none bg-gradient-to-tr from-white/0 via-white/5 to-white/0" />
                 </div>
               </div>
-
-              {/* Image container - LARGER SIZE */}
-              <div className="relative w-48 h-48 mx-auto mb-6 mt-8">
-                <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/30 via-amber-500/20 to-yellow-500/30 rounded-full blur-2xl" />
-                <div className="relative w-full h-full">
-                  <Image
-                    src="/fourth.png"
-                    alt="Grand prize"
-                    fill
-                    className="object-contain drop-shadow-2xl"
-                    priority
-                  />
-                </div>
-              </div>
-
-              {/* Prize description */}
-              <h3 className="text-2xl font-bold text-center text-yellow-400 mb-4">
-                Letterboxd Patron (1 Year)
-              </h3>
-
-              {/* Requirements */}
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <p className="text-sm text-zinc-500 text-center mb-3">Requirements to win:</p>
-                <div className="space-y-2">
-                  <p className="text-sm text-zinc-400 text-center flex items-center justify-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                    Follow @kxreeda on X
-                  </p>
-                  <p className="text-sm text-zinc-400 text-center flex items-center justify-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                    Follow @stelikira on X
-                  </p>
-                </div>
-              </div>
-
-              {/* Shine effect on hover */}
-              <div className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none bg-gradient-to-tr from-white/0 via-white/5 to-white/0" />
-            </div>
-          </div>
+            );
+          })}
         </div>
 
         {/* Footer note */}
         <div className="mt-12 text-center">
           <p className="text-sm text-zinc-600 max-w-2xl mx-auto">
-            Winner will be announced after the ceremony. Must be following both accounts 
-            on X (Twitter) to be eligible. Prize is non-transferable.
+            Winners will be announced after the ceremony. First place must be following both accounts 
+            on X (Twitter) to be eligible. Prizes are non-transferable.
           </p>
         </div>
 
