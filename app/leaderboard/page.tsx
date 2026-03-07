@@ -1,6 +1,5 @@
 // app/leaderboard/page.tsx
 import { createClient } from "@/lib/supabase/server";
-
 import { LeaderboardHeader } from "@/components/leaderboard/LeaderboardHeader";
 import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
 import { LeaderboardRow } from "@/types/leaderboard";
@@ -33,7 +32,7 @@ export default async function LeaderboardPage() {
   const eventName = events[0].name;
   const eventYear = events[0].year;
 
-  // Fetch all profiles first to get usernames
+  // Fetch all profiles to get usernames
   const { data: profiles } = await supabase
     .from("profiles")
     .select("id, username");
@@ -44,6 +43,28 @@ export default async function LeaderboardPage() {
     profiles.forEach(profile => {
       profileMap.set(profile.id, profile.username);
     });
+  }
+
+  // If we have a current user but no profile for them, try to get username from auth metadata
+  if (user && !profileMap.has(user.id)) {
+    // Get user metadata from auth (Note: This requires admin access)
+    // Alternative approach: We'll just use a fallback and let the UsernameCollection handle it
+    const email = user.email;
+    if (email) {
+      const fallbackUsername = email.split('@')[0];
+      // Insert the missing profile with email
+      await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          username: fallbackUsername,
+          email: email,
+          updated_at: new Date().toISOString(),
+        })
+        .select();
+      
+      profileMap.set(user.id, fallbackUsername);
+    }
   }
 
   // Fetch leaderboard data for this event
@@ -69,11 +90,20 @@ export default async function LeaderboardPage() {
   let rows: LeaderboardRow[] = [];
 
   if (leaderboardData && leaderboardData.length > 0) {
-    rows = leaderboardData.map(item => ({
-      username: profileMap.get(item.user_id) || "Unknown Player",
-      total_points: item.total_points,
-      user_id: item.user_id
-    }));
+    rows = leaderboardData.map(item => {
+      let username = profileMap.get(item.user_id);
+      
+      // If username not found in profiles, use fallback
+      if (!username) {
+        username = "Player " + item.user_id.substring(0, 4);
+      }
+      
+      return {
+        username: username,
+        total_points: item.total_points,
+        user_id: item.user_id
+      };
+    });
   }
 
   // Also include any profiles that don't have leaderboard entries yet (with 0 points)
@@ -127,7 +157,6 @@ export default async function LeaderboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-zinc-800 text-white px-6 py-12">
       <div className="max-w-4xl mx-auto">
-        
         
         <LeaderboardHeader
           eventName={eventName}

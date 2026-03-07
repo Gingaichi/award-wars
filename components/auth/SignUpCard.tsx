@@ -1,6 +1,8 @@
+// components/auth/SignUpCard.tsx
 "use client";
 
 import Link from "next/link";
+import { GoogleSignInButton } from "./GoogleSignInButton";
 
 type Props = {
   error: string | null;
@@ -14,6 +16,7 @@ type Props = {
   onPasswordChange: (value: string) => void;
   onConfirmPasswordChange?: (value: string) => void;
   onSubmit: () => void;
+  onGoogleError?: (error: string) => void;
 };
 
 export function SignUpCard({
@@ -28,6 +31,7 @@ export function SignUpCard({
   onPasswordChange,
   onConfirmPasswordChange,
   onSubmit,
+  onGoogleError,
 }: Props) {
   return (
     <div className="w-full max-w-md space-y-6 rounded-2xl bg-zinc-900 p-8 shadow-2xl border border-zinc-800">
@@ -82,6 +86,19 @@ export function SignUpCard({
       >
         {loading ? "Creating Account..." : "Sign Up"}
       </button>
+
+      {/* Divider */}
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-zinc-700"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-zinc-900 text-zinc-500">Or continue with</span>
+        </div>
+      </div>
+
+      {/* Google Sign In Button */}
+      <GoogleSignInButton onError={onGoogleError} />
 
       <div className="text-center text-zinc-400 text-sm">
         Already have an account?{" "}

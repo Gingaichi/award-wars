@@ -1,3 +1,4 @@
+// app/signup/page.tsx (updated)
 "use client";
 
 import { useState } from "react";
@@ -24,13 +25,12 @@ export default function SignUpPage() {
 
     setLoading(true);
     try {
-      // Sign up with Supabase Auth - the trigger will handle profile creation
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            username, // This gets passed to the trigger via raw_user_meta_data
+            username,
           },
         },
       });
@@ -43,18 +43,14 @@ export default function SignUpPage() {
         throw new Error("Sign up failed - no user returned");
       }
 
-      // Check if email confirmation is required
       if (authData.user && !authData.session) {
         setError("Please check your email to confirm your account");
         setLoading(false);
         return;
       }
 
-      // Store user info (optional - you can also get this from session)
       localStorage.setItem("userId", authData.user.id);
       localStorage.setItem("username", username);
-
-      // Redirect to leagues
       router.push("/predict");
       
     } catch (error: any) {
@@ -68,6 +64,10 @@ export default function SignUpPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleError = (error: string) => {
+    setError(error);
   };
 
   return (
@@ -84,6 +84,7 @@ export default function SignUpPage() {
         onPasswordChange={setPassword}
         onConfirmPasswordChange={setConfirmPassword}
         onSubmit={handleSignUp}
+        onGoogleError={handleGoogleError}
       />
     </div>
   );
